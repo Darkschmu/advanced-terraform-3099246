@@ -12,14 +12,14 @@ gcloud services enable cloudresourcemanager.googleapis.com
 
 ## 04_03_Terraform_Cloud_Setup
 ```
-gcloud iam service-accounts create terraform-cloud \
-    --description="SA for Terraform Cloud operations" \
+gcloud.cmd iam service-accounts create terraform-cloud `
+    --description="SA for Terraform Cloud operations" `
     --display-name="terraform-cloud"
 
- gcloud projects add-iam-policy-binding [PROJECT_ID] \
-    --member="serviceAccount:terraform-cloud@[PROJECT_ID].iam.gserviceaccount.com" \
+ gcloud.cmd projects add-iam-policy-binding advanced-terraform-459518 `
+    --member="serviceAccount:terraform-cloud@advanced-terraform-459518.iam.gserviceaccount.com" `
     --role="roles/owner"
 
-gcloud iam service-accounts keys create tf_sa_key \
-    --iam-account=terraform-cloud@[PROJECT_ID].iam.gserviceaccount.com
+gcloud.cmd iam service-accounts keys create tf_sa_key `
+    --iam-account=terraform-cloud@advanced-terraform-459518.iam.gserviceaccount.com
 ```
