@@ -1,0 +1,142 @@
+Source code https://github.com/LinkedInLearning/advanced-terraform-3099246.git
+Forked 
+
+gcloud account under shelakah
+advanced-terraform-459518 project
+
+install gcloud cli
+https://cloud.google.com/sdk/docs/install
+... but it doesnt integrate PS or cmd ...
+
+tried choco but its versions werent signed
+correction, gloud.ps1 (script) is not signed
+gcloud.cmd works fine
+
+
+gcloud.cmd auth application-default login
+to connect cli to cloud account
+
+gcloud.cmd auth application-default set-quota-project advanced-terraform-459518
+gcloud.cmd config set project advanced-terraform-459518
+
+gcloud.cmd auth login
+gcloud.cmd services enable iam.googleapis.com 
+gcloud.cmd services enable cloudresourcemanager.googleapis.com
+
+terraform init
+fmt
+validate
+plan <- faild here due to "Compute Engine API has not been used in project advanced-terraform-459518 before or it is disabled"
+that line above didnt do the jobb I guess, had to do it manually by following:
+https://console.developers.google.com/apis/api/compute.googleapis.com/overview?project=advanced-terraform-459518
+
+`terraform graph` produces digraph output that can be given to http://webgraphviz.com to get a nice visual
+
+
+dealing with vars, if no defaut provided, will ask at cli, so can give it at cli:
+terraform plan -out s1.tfplan -var="project-id=advanced-terraform-459518"
+
+02_02/02_02a have good examples of using variables for environments
+ie
+terraform plan -out s1.tfplan -var="project-id=advanced-terraform-459518" -var="target_environment=PROD"
+terraform plan -out s1.tfplan -var="project-id=advanced-terraform-459518" -var="target_environment=DEV"
+
+gcloud.cmd services enable sqladmin.googleapis.com
+
+02_05/02_05a has count loop example
+
+
+coming back to this, project 03_02, my cli wont allow me to connect ot my cloud account
+
+Error when reading or editing Network Not Found : default: googleapi: Error 403: Permission denied on resource project project=advanced-terraform-459518.
+
+I re-ran the commands and got the web prompt, should be ok:
+   9 gcloud.cmd services enable sqladmin.googleapis.com
+  10 gcloud.cmd components update
+  11 gcloud.cmd services enable sqladmin.googleapis.com
+  12 gcloud.cmd services enable iam.googleapis.com
+  13 gcloud.cmd services enable cloudresourcemanager.googleapis.com
+  14 gcloud.cmd auth application-default set-quota-project advanced-terraform-459518
+  15 gcloud.cmd auth application-default login
+  18 gcloud.cmd config set project advanced-terraform-459518
+  19 gcloud.cmd auth login
+  20 gcloud.cmd services enable iam.googleapis.com
+  21 gcloud.cmd services enable cloudresourcemanager.googleapis.com
+
+I remember having to set something in web since the cli wouldnt do it ...
+https://console.developers.google.com/apis/api/compute.googleapis.com/overview?project=advanced-terraform-459518
+still shows it active and enabled
+
+  38 gcloud.cmd config set project advanced-terraform-459518
+  39 gcloud.cmd services enable cloudresourcemanager.googleapis.com
+
+  40 terraform plan -out ps1.tfplan --var="project-id=project=advanced-terraform-459518" --var="target_environment=DEV"
+  gives me the auth error
+  41 terraform plan -out ps1.tfplan --var="target_environment=DEV"
+  enter proppject id manually, get a fdifferent error, nothing about the project butr rather billing stuff
+
+oh I see, typos: `--var="project-id=project=` instead of `--var="project-id=`
+
+so the new error is:
+
+╷
+│ Error: Invalid for_each argument
+│
+│   on .terraform\modules\service_accounts\main.tf line 70, in resource "google_organization_iam_member" "billing_user":
+│   70:   for_each = local.org_billing ? local.names : toset([])
+│     ├────────────────
+│     │ local.names is set of string with 4 elements
+│     │ local.org_billing has a sensitive value
+│
+│ Sensitive values, or values derived from sensitive values, cannot be used as for_each arguments. If used, the sensitive value could be exposed as a resource      
+│ instance key.
+╵
+
+so the stupid thing is, this is a module FROM GOOGLE doing things GOOGLE DOESNT WANT
+wtf
+For now ill just push ahead to get this done, one solution was to un-sensitive the set by adding 
+nonsensitive(foo) to each for_each arg flagged
+and it worked.
+
+something that had been bugging me is despite specifying the env in the plan, it just rolls through all envs
+--var="target_environment=DEV" ignored.
+but looking at the instructor's, he gets the same thing and doesnt mention it
+
+
+setting up remote state in 03_04 (remotestate/backed.tf)
+using it in 03_05: `terraform init -backend-config="bucket={bucket name}"`
+
+
+04_03
+gcloud.cmd iam service-accounts create terraform-cloud `
+    --description="SA for Terraform Cloud operations" `
+    --display-name="terraform-cloud"
+
+ gcloud.cmd projects add-iam-policy-binding advanced-terraform-459518 `
+    --member="serviceAccount:terraform-cloud@advanced-terraform-459518.iam.gserviceaccount.com" `
+    --role="roles/owner"
+
+gcloud.cmd iam service-accounts keys create tf_sa_key `
+    --iam-account=terraform-cloud@advanced-terraform-459518.iam.gserviceaccount.com
+
+the '`' is powershell's '\'
+
+
+running exercise 04_03 I ran into the same issue as earlier with the service_account module handling secure data in a for_each construct
+no way to patch it as it's downloaded at init 
+The GUI gives an option to run with a different version of terraform, and google tells me this problem started appearing in 0.14, so I tried 0.13.7 and got a different error:
+
+Error: Unsupported argument
+
+  on variables.tf line 9, in variable "org_id":
+9:   sensitive = true
+
+An argument named "sensitive" is not expected here.
+
+so desensitize that var and things start working.
+magic.
+
+
+In both cases of my dev and qa branches not deploying automatically the first time, things seem to fall into place after I mamually triggered a run.
+subsequent runs seem to follow merge triggers
+just weird and frustrating
