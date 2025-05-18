@@ -6,7 +6,8 @@ variable "project-id" {
 variable "org_id" {
   type = string
   default = ""
-  #sensitive = true
+#  sensitive = true
+
 }
 
 variable "region" {
