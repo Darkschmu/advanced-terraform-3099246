@@ -74,7 +74,8 @@ variable "environment_machine_type" {
 }
 
 variable "environment_instance_settings" {
-  type = map(object({machine_type=string, labels=map(string)}))
+  type = map(any)
+/*   type = map(object({machine_type=string, labels=map(string)}))
   default = {
     "DEV" = {
       machine_type = "f1-micro"
@@ -101,4 +102,4 @@ variable "environment_instance_settings" {
       }
     }
   }
-}
+ */}
